@@ -1,7 +1,4 @@
 from PIL import Image,ImageDraw
-
-
-
 def plot_path(save_path,columns,rows,block_list,path_dict):
     size = int(1024/max(columns,rows))
     background = Image.new('RGB', (columns*size,rows*size), (255, 255, 255))

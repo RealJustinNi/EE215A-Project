@@ -11,16 +11,17 @@ def parse_gridfile(filepath):
     rows = int(data[0].split(" ",4)[1])
     bend_penalty = int(data[0].split(" ",4)[2])
     via_penalty = int(data[0].split(" ",4)[3])
-    print(rows,columns,bend_penalty,via_penalty)
+    print("bend_penalty:",bend_penalty,"\n","via_penalty:",via_penalty)
     string = str(data[1:])
     for item in ["'","[","]",","]:
         string=string.replace(item,"")
     array = np.genfromtxt(StringIO(string))
     array = array.reshape((2*rows,columns))
     layer1_gird,layer2_grid = np.vsplit(array, 2)[0],np.vsplit(array, 2)[1]
-    print(layer1_gird.shape)
-    print(layer2_grid.shape)
+    print("size of layer1:",layer1_gird.shape)
+    print("size of layer2:",layer2_grid.shape)
     return rows,columns,bend_penalty,via_penalty,layer1_gird,layer2_grid
+
 
 def parse_netlist(filepath):
     with open(filepath, 'r') as file:
