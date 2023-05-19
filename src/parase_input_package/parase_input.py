@@ -25,10 +25,8 @@ def parse_gridfile(filepath):
 def parse_netlist(filepath):
     with open(filepath, 'r') as file:
         lines = file.readlines()
-
     net_count = int(lines[0])
     nets = []
-
     for i in range(1, net_count + 1):
         net_data = lines[i].split()
         net_id = int(net_data[0])
@@ -44,4 +42,4 @@ def parse_netlist(filepath):
             'pin2': {'x': pin2_x, 'y': pin2_y, 'layer': pin2_layer}
         }
         nets.append(net)
-    return nets
+    return nets,net_count
