@@ -42,4 +42,4 @@ def parse_netlist(filepath):
             'pin2': {'x': pin2_x, 'y': pin2_y, 'layer': pin2_layer}
         }
         nets.append(net)
-    return nets,net_count+1
+    return nets,net_count
