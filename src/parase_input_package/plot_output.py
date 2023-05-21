@@ -11,12 +11,16 @@ def plot_path(save_path,columns,rows,block_list,path_dict):
     for item in block_list:
         background.paste(black,(item[0]*size,item[1]*size))
     for key in path_dict.keys():
-        for item in path_dict[key]:
-            if (path_dict[key].index(item) == 0) or (path_dict[key].index(item) == len(path_dict[key]) - 1):
-                background.paste(blue,(item[0]*size,item[1]*size))
-            else:
-                background.paste(red,(item[0]*size,item[1]*size))
-            draw.text((item[0]*size+int(0.25*size),item[1]*size+int(0.25*size)), str(key), fill=(255, 255, 255))
+        if path_dict[key]:
+            for item in path_dict[key]:
+                if (path_dict[key].index(item) == 0) or (path_dict[key].index(item) == len(path_dict[key]) - 1):
+                    background.paste(blue,(item[0]*size,item[1]*size))
+                else:
+                    background.paste(red,(item[0]*size,item[1]*size))
+                if key <100:
+                    draw.text((item[0]*size+int(0.25*size),item[1]*size+int(0.25*size)), str(key), fill=(255, 255, 255))
+                elif key >= 100:
+                    draw.text((item[0]*size,item[1]*size+int(0.25*size)), str(key), fill=(255, 255, 255))
     #background.rotate(90).save(save_path) 
     background.save(save_path) 
 
@@ -45,14 +49,22 @@ def plot_problem(save_path,columns,rows,grid1,grid2,netlist):
             flag1 = 1
             background1.paste(blue,(item['pin1']['x']*size,item['pin1']['y']*size))
             background1.paste(blue,(item['pin2']['x']*size,item['pin2']['y']*size))
-            draw1.text((item['pin1']['x']*size+int(0.25*size),item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
-            draw1.text((item['pin2']['x']*size+int(0.25*size),item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+            if int(item['net_id'])<100:
+                draw1.text((item['pin1']['x']*size+int(0.25*size),item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+                draw1.text((item['pin2']['x']*size+int(0.25*size),item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+            else:
+                draw1.text((item['pin1']['x']*size,item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+                draw1.text((item['pin2']['x']*size,item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
         elif item['pin1']['layer']==2 and item['pin2']['layer']==2:
             flag2 = 1
             background2.paste(blue,(item['pin1']['x']*size,item['pin1']['y']*size))
             background2.paste(blue,(item['pin2']['x']*size,item['pin2']['y']*size))
-            draw2.text((item['pin1']['x']*size+int(0.25*size),item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
-            draw2.text((item['pin2']['x']*size+int(0.25*size),item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+            if int(item['net_id'])<100:
+                draw2.text((item['pin1']['x']*size+int(0.25*size),item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+                draw2.text((item['pin2']['x']*size+int(0.25*size),item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+            else:
+                draw2.text((item['pin1']['x']*size,item['pin1']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
+                draw2.text((item['pin2']['x']*size,item['pin2']['y']*size+int(0.25*size)), str(int(item['net_id'])), fill=(255, 255, 255))
     if flag1:
         background1.save(save_path[:-4]+'_layer1.jpg') 
     if flag2:
