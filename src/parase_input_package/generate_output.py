@@ -1,5 +1,5 @@
 def generate_output_file(filepath, net_number, routing_paths):
-    with open(filepath, 'w') as file:
+    with open(filepath, 'a+') as file:
         file.write(str(net_number) + '\n')
 
         for net_id, routing_path in routing_paths.items():
