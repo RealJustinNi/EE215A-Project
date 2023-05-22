@@ -5,6 +5,6 @@ def generate_output_file(filepath, net_number, routing_paths):
         for net_id, routing_path in routing_paths.items():
             file.write(str(net_id) + '\n')
             if routing_path:  # None的情况
-                for layer, x, y in routing_path:
+                for  x, y,layer in routing_path:
                     file.write(str(layer) + ' ' + str(x) + ' ' + str(y) + '\n')
             file.write('0\n')
