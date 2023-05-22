@@ -98,6 +98,7 @@ def get_neighbors(rows, columns, cell):
     return neighbors
 
 def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_penalty,via_penalty):
+    nets.sort(key=lambda s: ((s["pin1"]['x']-s["pin2"]['x'])**2+(s["pin1"]['y']-s["pin2"]['y'])**2))
     routing_table = {}
     costs_table = {}
     for net in nets:
@@ -133,6 +134,8 @@ def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_pena
             mark_path_on_grid(layer1_grid,path)
             routing_table[net_id] = path
             costs_table[net_id] = costs
+    routing_table = dict(sorted(routing_table.items(),key=lambda x:x[0]))
+    costs_table = dict(sorted(costs_table.items(),key=lambda x:x[0]))
     return routing_table,costs_table
 
 
@@ -146,9 +149,6 @@ if __name__ == "__main__":
     plot_problem('../out/figure/'+args.filename+'_problem.jpg',columns,rows,layer1_grid_original,layer2_grid_original,nets)
     layer1_grid = layer1_grid_original.copy()
     layer2_grid = layer2_grid_original.copy()
-    nets.sort(key=lambda s: ((s["pin1"]['x']-s["pin2"]['x'])**2+(s["pin1"]['y']-s["pin2"]['y'])**2))
     routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty)
-    routing_table = dict(sorted(routing_table.items(),key=lambda x:x[0]))
-    costs_table = dict(sorted(costs_table.items(),key=lambda x:x[0]))
     plot_path('../out/figure/'+args.filename+'_result.jpg',columns=columns,rows=rows,grid1=layer1_grid_original,grid2=layer2_grid_original,path_dict=routing_table) 
     generate_output_file(filepath_out,net_num,routing_table)
