@@ -6,6 +6,7 @@ _Student ID : 2022231102,2022231104_
 ```
 pip install -r requirements.txt
 ```
+OR
 ```
 conda install --file requirements.txt
 ```
