@@ -128,7 +128,6 @@ def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_pena
             layer2_grid[pin2['x']][pin2['y']] = 1
         print('Routing net:',net_id)
         path,costs = expand_source_to_target(rows, columns, layer1_grid,layer2_grid, pin1, pin2,bend_penalty,via_penalty) 
-        costs = {}
         if path is not None:
             mark_path_on_grid(layer1_grid,path)
             routing_table[net_id] = path
