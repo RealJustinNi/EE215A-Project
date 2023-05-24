@@ -1,7 +1,5 @@
 from PIL import Image,ImageDraw
 import numpy as np
-from PIL import Image,ImageDraw
-import numpy as np
 
 def show_number(key,item,draw1,draw2,size):
     # 路径上标字
