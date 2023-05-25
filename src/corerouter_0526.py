@@ -49,21 +49,52 @@ def get_cell_cost(layer_grid, cell,path_tmp,bend_penalty,via_penalty):
         if layer != last_layer:
             cell_cost += via_penalty
         elif (layer == 1 and x!= last_x):
-            #cell_cost += bend_penalty*5
-            cell_cost += 3*via_penalty
+            cell_cost += bend_penalty
         elif (layer == 2 and y!= last_y):
-            #cell_cost += bend_penalty*5
-            cell_cost += 3*via_penalty
-        """ elif len(path_tmp) >= 2:
-            prev_prev_cell = path_tmp[-2]
-            prev_cell = path_tmp[-1]
-            _, _, prev_layer = prev_cell
-            prev_prev_x, prev_prev_y, prev_prev_layer = prev_prev_cell
-            if (prev_layer ==layer and prev_prev_layer == layer and prev_prev_x != x and prev_prev_y != y):  
-                cell_cost += bend_penalty """
+            cell_cost += bend_penalty
     return cell_cost
-
+def check_blocks_for_layer1(source_tuple,target_tuple,layer1_grid,layer2_grid,via_penalty):
+    source_x,source_y,_ = source_tuple
+    target_x,target_y,_ = target_tuple
+    # check2,x方向 再查1 y方向
+    tmp_x,tmp_y= target_x,source_y
+    cnt1 = 0
+    cnt2 = 0
+    inc = (-1)if source_x>=tmp_x else 1
+    for x in range(source_x,tmp_x+inc,inc):
+        #print(x)
+        if layer2_grid[x][tmp_y] == -1:
+            cnt1+=1
+    inc = (-1)if tmp_y>=target_y else 1
+    for y in range(tmp_y,target_y+inc,inc):
+        #print(y)
+        if layer1_grid[tmp_x][y] == -1:
+            cnt2+=1
+    if cnt1 and cnt2:
+        cnt2+= 2*via_penalty
+    return cnt1+cnt2
+def check_blocks_for_layer2(source_tuple,target_tuple,layer1_grid,layer2_grid,via_penalty):
+    source_x,source_y,_ = source_tuple
+    target_x,target_y,_ = target_tuple
+    # check1,y方向 再查2 x方向
+    tmp_x,tmp_y= source_x,target_y
+    cnt1 = 0
+    cnt2 = 0
+    inc = (-1)if source_y>=tmp_y else 1
+    for y in range(source_y,tmp_y+inc,inc):
+        #print(y)
+        if layer1_grid[tmp_x][y] == -1:
+            cnt1+=1
+    inc = (-1)if tmp_x>=target_x else 1
+    for x in range(tmp_x,target_x+inc,inc):
+        #print(x)
+        if layer2_grid[x][tmp_y] == -1:
+            cnt2+=1
+    if cnt1 and cnt2:
+        cnt2+= 2*via_penalty
+    return cnt1+cnt2
 def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, target,bend_penalty,via_penalty,single_enable):
+    s1 = time.time()
     wavefront = {}
     visited = set()
     parents = {}
@@ -76,6 +107,9 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
     costs[source_tuple] = 1  # Initial cost for the source cell is 1
 
     while wavefront:
+        if time.time() - s1 >= 5:
+            return None,None
+
         # get lowest cost cell on a wavefront structure
         current_cell = sorted(wavefront.items(),key=lambda s:int(s[1]))[0][0]
 
@@ -83,11 +117,11 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
             path = reconstruct_path(source_tuple, target_tuple, parents)
             return path,costs[current_cell]
 
-        #if single_enable:
-        #    neighbors = get_neighbors_different_directions(rows, columns, current_cell,layer1_grid,layer2_grid)
-        #else:
-        #    neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)
-        neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)
+        if single_enable:
+            neighbors = get_neighbors_different_directions(rows, columns, current_cell,layer1_grid,layer2_grid)
+        else:
+            neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)
+        #neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)
             
         #neighbors.sort(key=lambda s: ((s['x']-target_tuple[0])+(s['y']-target_tuple[1]))+((s['layer']-target_tuple[2])))
 
@@ -99,7 +133,7 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
                 # Calculate the cost to reach the neighbor cell
                 if(neighbor_tuple[2]== 1):
                   cost = costs[current_cell] + get_cell_cost(layer1_grid, neighbor_tuple,path_tmp,bend_penalty,via_penalty)
-                if(neighbor_tuple[2]== 2):
+                else:
                   cost = costs[current_cell] + get_cell_cost(layer2_grid, neighbor_tuple,path_tmp,bend_penalty,via_penalty)
                 # ignore blocks
                 if cost!= np.inf:
@@ -109,12 +143,14 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
 
                     if neighbor_tuple not in wavefront.keys():
                         # add cell N to waveform, indexed by pathcost
-                        cost_target = cost + abs(neighbor_tuple[0]-target_tuple[0])+abs(neighbor_tuple[1]-target_tuple[1])+via_penalty*abs(neighbor_tuple[2]-target_tuple[2])
+                        cost_target = cost + via_penalty*abs(neighbor_tuple[2]-target_tuple[2])
+                        if single_enable:
+                            cost_target += (abs(neighbor_tuple[0]-target_tuple[0])+abs(neighbor_tuple[1]-target_tuple[1]))*via_penalty*0.5
                         """ if single_enable:
-                            if abs(neighbor_tuple[0]-target_tuple[0]) and (neighbor_tuple[2] == 1):
-                                cost_target += via_penalty
-                            if abs(neighbor_tuple[1]-target_tuple[1]) and (neighbor_tuple[2] == 2):
-                                cost_target += via_penalty  """
+                            if (neighbor_tuple[2] == 1):
+                                cost_target += check_blocks_for_layer1(neighbor_tuple,target_tuple,layer1_grid,layer2_grid,via_penalty)
+                            else:
+                                cost_target += check_blocks_for_layer2(neighbor_tuple,target_tuple,layer1_grid,layer2_grid,via_penalty)   """
                         wavefront[neighbor_tuple]=cost_target          
 
         visited.add(current_cell)    
@@ -160,61 +196,80 @@ def get_neighbors_different_directions(rows, columns, cell,layer1_grid,layer2_gr
     return neighbors
 
 def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_penalty,via_penalty,single_enable):
-    routing_table = {}
-    costs_table = {}
-    cnt = 0
-    for net in nets:
-        net_id = net['net_id']
-        pin1 = net['pin1']
-        pin2 = net['pin2']
-        # 防止布线在后续的pin上，先将所有的pin标记为-1；
-        if pin1['layer'] == 1:
-            layer1_grid[pin1['x']][pin1['y']] = -1
-        if pin1['layer'] == 2:
-            layer2_grid[pin1['x']][pin1['y']] = -1
-        if pin2['layer'] == 1:
-            layer1_grid[pin2['x']][pin2['y']] = -1
-        if pin2['layer'] == 2:
-            layer2_grid[pin2['x']][pin2['y']] = -1
-           
-    for net in nets:
-        net_id = net['net_id']
-        pin1 = net['pin1']
-        pin2 = net['pin2']
-        if pin1['layer'] == 1:
-            layer1_grid[pin1['x']][pin1['y']] = 1
-        if pin1['layer'] == 2:
-            layer2_grid[pin1['x']][pin1['y']] = 1
-        if pin2['layer'] == 1:
-            layer1_grid[pin2['x']][pin2['y']] = 1
-        if pin2['layer'] == 2:
-            layer2_grid[pin2['x']][pin2['y']] = 1
-        cnt += 1
-        print('Routing net:',net_id,'\t ('+str(cnt)+'/'+str(len(nets))+')')
-        path,costs = expand_source_to_target(rows, columns, layer1_grid,layer2_grid, pin1, pin2,bend_penalty,via_penalty,single_enable) 
-        if path is not None:
-            mark_path_on_grid(layer1_grid,layer2_grid,path)
-            routing_table[net_id] = path
-            costs_table[net_id] = costs
-        else:
-            print('This net will be re-routed again:',net_id)
-            path,costs = expand_source_to_target(rows, columns, layer1_grid,layer2_grid, pin1, pin2,bend_penalty,via_penalty,single_enable=False) 
+    cnt_ire = 0
+    bad_net = []
+    nets.sort(key=lambda s: ((s["pin1"]['x']-s["pin2"]['x'])**2+(s["pin1"]['y']-s["pin2"]['y'])**2)+(s["pin1"]['layer']-s["pin2"]['layer'])**2)
+    nets_difficult = nets[-1*int(0.1*len(nets)):]
+    nets_difficult.reverse()
+    nets = nets_difficult+(nets[:-1*int(0.1*len(nets))])
+    bad_net_tmp = []
+
+    while (bad_net_tmp != [] or cnt_ire==0) and cnt_ire<5:
+        #print(bad_net_tmp,cnt_ire)
+        for item in bad_net:
+            net_bad = nets.pop(nets.index(item))
+            nets.insert(0,net_bad)
+        bad_net_tmp = []
+        routing_table = {}
+        costs_table = {}
+        cnt_ire +=1
+        cnt = 0
+        layer1_ori,layer2_ori=layer1_grid.copy(),layer2_grid.copy()
+        for net in nets:
+            net_id = net['net_id']
+            pin1 = net['pin1']
+            pin2 = net['pin2']
+            # 防止布线在后续的pin上，先将所有的pin标记为-1；
+            if pin1['layer'] == 1:
+                layer1_ori[pin1['x']][pin1['y']] = -1
+            if pin1['layer'] == 2:
+                layer2_ori[pin1['x']][pin1['y']] = -1
+            if pin2['layer'] == 1:
+                layer1_ori[pin2['x']][pin2['y']] = -1
+            if pin2['layer'] == 2:
+                layer2_ori[pin2['x']][pin2['y']] = -1
+            
+        for net in nets:
+            net_id = net['net_id']
+            pin1 = net['pin1']
+            pin2 = net['pin2']
+            if pin1['layer'] == 1:
+                layer1_ori[pin1['x']][pin1['y']] = 1
+            if pin1['layer'] == 2:
+                layer2_ori[pin1['x']][pin1['y']] = 1
+            if pin2['layer'] == 1:
+                layer1_ori[pin2['x']][pin2['y']] = 1
+            if pin2['layer'] == 2:
+                layer2_ori[pin2['x']][pin2['y']] = 1
+            cnt += 1
+            print('Routing net:',net_id,'\t ('+str(cnt)+'/'+str(len(nets))+')')
+            path,costs = expand_source_to_target(rows, columns, layer1_ori,layer2_ori, pin1, pin2,bend_penalty,via_penalty,single_enable) 
             if path is not None:
-                mark_path_on_grid(layer1_grid,layer2_grid,path)
+                mark_path_on_grid(layer1_ori,layer2_ori,path)
                 routing_table[net_id] = path
                 costs_table[net_id] = costs
             else:
+                cnt -= 1
+                print('This net will be re-routed again:',net_id)
+                bad_net_tmp.append(net)
                 routing_table[net_id] = None
                 costs_table[net_id] = None
-                print('This net is still bad:',net_id)
-        
-
+                if pin1['layer'] == 1:
+                    layer1_ori[pin1['x']][pin1['y']] = -1
+                if pin1['layer'] == 2:
+                    layer2_ori[pin1['x']][pin1['y']] = -1
+                if pin2['layer'] == 1:
+                    layer1_ori[pin2['x']][pin2['y']] = -1
+                if pin2['layer'] == 2:
+                    layer2_ori[pin2['x']][pin2['y']] = -1
+        bad_net +=bad_net_tmp
+            
     return routing_table,costs_table
 
 
 if __name__ == "__main__":
     print('Parsing',args.filename,'...')
-    filepath_out='../out/'+args.filename+'_25.router'
+    filepath_out='../out/'+args.filename+'_0526.router'
     netlist_file_path = '../benchmark/'+args.filename+'.nl'
     gridfile_path  = '../benchmark/'+args.filename+'.grid'
     nets,net_num = parse_netlist(netlist_file_path)
@@ -229,7 +284,8 @@ if __name__ == "__main__":
     if args.filename in ["bench1","bench2","bench3","bench4"]:
         single_enable = False
     s_time = time.time()
-    nets.sort(key=lambda s: ((s["pin1"]['x']-s["pin2"]['x'])**2+(s["pin1"]['y']-s["pin2"]['y'])**2)+(s["pin1"]['layer']-s["pin2"]['layer'])**2)
+
+    #nets = nets[-1*int(0.2*len(nets)):]+(nets[:-1*int(0.1*len(nets))])
     routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,single_enable)
     routing_table = dict(sorted(routing_table.items(),key=lambda x:x[0]))
     print('All routing time:'+str(time.time()-s_time)[0:5]+'s')
