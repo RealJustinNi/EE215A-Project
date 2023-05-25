@@ -11,7 +11,6 @@ def parse_gridfile_evaluate(filepath):
     rows = int(data[0].split(" ",4)[1])
     bend_penalty = int(data[0].split(" ",4)[2])
     via_penalty = int(data[0].split(" ",4)[3])
-    print("bend_penalty:",bend_penalty,"\n","via_penalty:",via_penalty)
     string = str(data[1:])
     for item in ["'","[","]",","]:
         string=string.replace(item,"")
@@ -62,9 +61,9 @@ def read_output_file(file_path):
                 paths.append({'net_id': net_id, 'path': path})  # 将路径数据添加到 paths 列表中
     if missing_net_ids:
         for net_id in missing_net_ids:
-            print(f"没有布线的节点: {net_id}")
+            print(f"No routed net: {net_id}")
     else:
-        print("所有的节点均已布线.")
+        print("All nets are routed")
     return paths, missing_net_ids
 
 def check_duplicate_points(output_data):
@@ -86,12 +85,12 @@ def check_duplicate_points(output_data):
                 visited_points.add(point_tuple)
     
     if len(duplicate_points) > 0:
-        print("存在重复的点:")
+        print("Discover overlapping points")
         for point, net_ids in duplicate_points.items():
             print(f"X: {point[0]}, Y: {point[1]}, Layer: {point[2]}")
-            print("重复的Net ID:", net_ids)
+            print("Net ID:", net_ids)
     else:
-        print("未找到重复的点。")
+        print("No overlapping points found")
     
     return duplicate_points
 
@@ -119,9 +118,9 @@ def check_adjacent_paths(paths):
         if not is_adjacent:
             incorrect_paths.append(data['net_id'])
     if len(incorrect_paths) > 0:
-        print("不连续布线的Net ID:",incorrect_paths)
+        print("Presence of path discontinuity,Net ID:",incorrect_paths)
     else:
-        print("所有布线都连续")
+        print("All paths are continuous")
     return
 
 
@@ -132,25 +131,25 @@ def check_path_coordinates(paths, nets):
         path = path_data['path']
         net = next((net for net in nets if net['net_id'] == net_id), None)
         if net is None:
-            print(f"无法找到匹配的网络列表数据,Net ID: {net_id}")
+            print(f"Unable to find matching network list data: {net_id}")
         else:
             pin1 = net['pin1']
             pin2 = net['pin2']
             path_start = path[0]
             path_end = path[-1]
             if (path_start['layer'], path_start['x'], path_start['y']) != (pin1['layer'], pin1['x'], pin1['y']):
-                print(f"路径起点与网络列表不匹配，Net ID: {net_id}")
+                print(f"Start points do not match Nets,Net ID: {net_id}")
             #else:
             #    print(f"路径起点与网络列表匹配，Net ID: {net_id}")
             if (path_end['layer'], path_end['x'], path_end['y']) != (pin2['layer'], pin2['x'], pin2['y']):
-                print(f"路径终点与网络列表不匹配，Net ID: {net_id}")
+                print(f"End points do not match Nets,Net ID: {net_id}")
             else:
                 matching_paths.append(path_data)  # 添加匹配的路径数据到列表中
 
     if len(matching_paths) == len(paths):
-        print("布线结果的起点和终点与Nets全部匹配")
+        print("Start and end points match all Nets")
     else:
-        print("布线结果的起点和终点与Nets发现不匹配")
+        print("Start and end points do not match Nets")
         
 def calculate_path_cost(paths, bend_penalty, via_penalty, layer1_grid, layer2_grid):
     total_cost = 0
@@ -182,11 +181,12 @@ def calculate_path_cost(paths, bend_penalty, via_penalty, layer1_grid, layer2_gr
                     cost += bend_penalty
         cost_path[net_id]=cost
         total_cost += cost
-    print("total_cost:",total_cost)               
+    print("Total costs:",total_cost)               
     return cost_path,total_cost
 
 
 def evaluate_route(router_path,bench_name):
+    print(">>>>>>>>>>Start evaluation:",bench_name,"<<<<<<<<<<")
     paths,_ = read_output_file(router_path)
     duplicate_points = check_duplicate_points(paths)
     check_adjacent_paths(paths)
@@ -196,6 +196,7 @@ def evaluate_route(router_path,bench_name):
     bend_penalty,via_penalty,layer1_grid,layer2_grid = parse_gridfile_evaluate(gridfile_path)
     check_path_coordinates(paths, nets)
     cost_path,total_cost=calculate_path_cost(paths, bend_penalty, via_penalty, layer1_grid.T, layer2_grid.T)
+    print(">>>>>>>>>>>>>>Evaluation completed<<<<<<<<<<<<<<<")
     return duplicate_points ,cost_path,total_cost
 
 
