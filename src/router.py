@@ -84,7 +84,7 @@ def get_cell_cost(layer_grid, cell,path_tmp,bend_penalty,via_penalty,advanced):
                     cell_cost += bend_penalty
     return cell_cost
 
-def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, target,bend_penalty,via_penalty,advanced,single_enable,iteration,eta):
+def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, target,bend_penalty,via_penalty,advanced,iteration,eta):
     s1 = time.time()
     wavefront = {}
     visited = set()
@@ -107,17 +107,13 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
             path = reconstruct_path(source_tuple, target_tuple, parents)
             return path,costs[current_cell]
 
-        if single_enable:
-            #neighbors = get_neighbors_different_directions(rows, columns, current_cell,layer1_grid,layer2_grid)  
-            neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)  
-        else:
-            neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)
+        neighbors = get_neighbors(rows, columns, current_cell,layer1_grid,layer2_grid)  
         
         for neighbor in neighbors:
             neighbor_tuple = (neighbor['x'], neighbor['y'], neighbor['layer'])
 
             if neighbor_tuple not in visited:
-                #path_tmp= reconstruct_path_tmp(source_tuple, current_cell, parents)
+        
                 path_tmp= reconstruct_path(source_tuple, current_cell, parents)
                 # Calculate the cost to reach the neighbor cell
                 if(neighbor_tuple[2]== 1):
@@ -130,18 +126,12 @@ def expand_source_to_target(rows, columns, layer1_grid,layer2_grid, source, targ
                         costs[neighbor_tuple] = cost
                         parents[neighbor_tuple] = current_cell
 
-                    #if neighbor_tuple not in wavefront.keys():   0529
-                        # add cell N to waveform, indexed by pathcost
-                        if advanced == False and single_enable == False:
+                        if advanced == False:
                             cost_target = cost
-                        elif advanced == False and single_enable == True:
-                            cost_target = cost + via_penalty*abs(neighbor_tuple[2]-target_tuple[2])*eta
-                            cost_target += (abs(neighbor_tuple[0]-target_tuple[0])+abs(neighbor_tuple[1]-target_tuple[1]))*via_penalty*eta
-                        elif advanced == True and single_enable == True:
-                            cost_target = cost + via_penalty*abs(neighbor_tuple[2]-target_tuple[2])*eta
-                            cost_target += (abs(neighbor_tuple[0]-target_tuple[0])+abs(neighbor_tuple[1]-target_tuple[1]))*via_penalty*eta
-                        elif advanced == True and single_enable == False:
-                            cost_target = cost + via_penalty*abs(neighbor_tuple[2]-target_tuple[2])
+                        else:
+                            distance = abs(neighbor_tuple[2]-target_tuple[2])+abs(neighbor_tuple[1]-target_tuple[1])+abs(neighbor_tuple[0]-target_tuple[0])
+                            cost_target = cost + via_penalty*eta*distance
+
                         wavefront[neighbor_tuple]=cost_target          
 
         visited.add(current_cell)    
@@ -167,37 +157,20 @@ def get_neighbors(rows, columns, cell,layer1_grid,layer2_grid):
         neighbors.append({'x': x, 'y': y, 'layer': 3-layer})                                            
     return neighbors
 
-def get_neighbors_different_directions(rows, columns, cell,layer1_grid,layer2_grid): 
-    x, y, layer = cell
-    neighbors = []
-    if y > 0:
-        if (layer == 1 and layer1_grid[x][y-1] !=-1) :
-            neighbors.append({'x': x, 'y': y - 1, 'layer': layer})
-    if x < columns - 1:
-        if (layer == 2 and layer2_grid[x+1][y] !=-1):
-            neighbors.append({'x': x + 1, 'y': y, 'layer': layer})
-    if y < rows - 1:
-        if (layer == 1 and layer1_grid[x][y+1] !=-1) :
-            neighbors.append({'x': x, 'y': y + 1, 'layer': layer})
-    if x > 0:
-        if  (layer == 2 and layer2_grid[x-1][y] !=-1):
-            neighbors.append({'x': x - 1, 'y': y, 'layer': layer})
-    if (layer == 1 and layer2_grid[x][y] !=-1) or (layer == 2 and layer1_grid[x][y] !=-1):     
-        neighbors.append({'x': x, 'y': y, 'layer': 3-layer})                                            
-    return neighbors
-
-def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_penalty,via_penalty,advanced,single_enable,iteration):
+def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_penalty,via_penalty,advanced,iteration):
     cnt_ire = 0
     have_result = 0
     bad_net = []
     bad_net_cnt = []
-    best = 99999999
+    best = np.inf
+    best_routing_table = None
+    best_costs_table = None
     nets.sort(key=lambda s: ((s["pin1"]['x']-s["pin2"]['x'])**2+(s["pin1"]['y']-s["pin2"]['y'])**2)+(s["pin1"]['layer']-s["pin2"]['layer'])**2)
     nets_difficult = nets[-1*int(0.1*len(nets)):]
     nets_difficult.reverse()
     nets = nets_difficult+(nets[:-1*int(0.1*len(nets))])
     bad_net_tmp = []
-    #print(advanced,single_enable)
+
     if len(nets) == 1000:
         eta = 0.5 + 0.025
     else:
@@ -220,7 +193,6 @@ def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_pena
         bad_net_tmp = []
         routing_table = {}
         costs_table = {}
-        delta_table = {}
         cnt_ire +=1
         cnt = 0
         layer1_ori,layer2_ori=layer1_grid.copy(),layer2_grid.copy()
@@ -253,7 +225,7 @@ def true_two_layer_router(rows, columns, layer1_grid,layer2_grid, nets,bend_pena
             cnt += 1
             print('Routing net:',net_id,'\t ('+str(cnt)+'/'+str(len(nets))+')')
 
-            path,costs = expand_source_to_target(rows, columns, layer1_ori,layer2_ori, pin1, pin2,bend_penalty,via_penalty,advanced,single_enable,iteration=cnt_ire,eta=eta)
+            path,costs = expand_source_to_target(rows, columns, layer1_ori,layer2_ori, pin1, pin2,bend_penalty,via_penalty,advanced,iteration=cnt_ire,eta=eta)
             
             if path is not None:
                 mark_path_on_grid(layer1_ori,layer2_ori,path)
@@ -297,31 +269,22 @@ if __name__ == "__main__":
     layer1_grid = layer1_grid_original.copy()
     layer2_grid = layer2_grid_original.copy()
     if args.filename in ["bench1","bench2","bench3","bench4"]:
-        single_enable = False
         advanced = False
-    elif args.filename in ["bench5","fract2"]:
-        single_enable = True
-        advanced = True
-    elif args.filename in ["primary1","industry1"]:
-        single_enable = True
+    else:
         advanced = True
     s_time = time.time()
-    if single_enable:
+    if advanced:
         if args.iteration:
-            routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,single_enable,iteration=args.iteration)
+            routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,iteration=args.iteration)
         else:
-            routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,single_enable,iteration=20)
+            routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,iteration=20)
     else:
-        routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,single_enable,iteration=2)
-    routing_table = dict(sorted(routing_table.items(),key=lambda x:x[0]))
+        routing_table,costs_table=true_two_layer_router(rows, columns, layer1_grid.T,layer2_grid.T, nets,bend_penalty,via_penalty,advanced,iteration=2)
     print('All routing time:'+str(time.time()-s_time)[0:5]+'s')
     print('Required routing nets:'+str(len(nets)))
-    print('Finished routing nets:'+str(len(routing_table)))
-    for key in list(costs_table.keys()):
-        if not costs_table.get(key):
-            del costs_table[key]
-    costs_table = dict(sorted(costs_table.items(),key=lambda x:x[0]))
-    print('Overall cost:'+str(sum(costs_table.values())))
+    if routing_table: 
+        routing_table = dict(sorted(routing_table.items(),key=lambda x:x[0]))
+        print('Finished routing nets:'+str(len(routing_table)))
     plot_path('../out/figure/'+args.filename+'_result.jpg',columns=columns,rows=rows,grid1=layer1_grid_original,grid2=layer2_grid_original,path_dict=routing_table) 
     generate_output_file(filepath_out,net_num,routing_table)
     duplicate_points ,cost_path,total_cost=evaluate_route(filepath_out,args.filename)
