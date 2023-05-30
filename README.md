@@ -15,7 +15,7 @@ pip install -r requirements.txt
 ## Reference running time  
 In order to get smaller costs and less time, we introduced an iterative mechanism in the last four testbenchs (18 iterations)   
 
-| bench5 | fract2 | primary1 | industry |
+| bench5 | fract2 | primary1 | industry1 |
 | ------- | ------- | ------- |------- |
 | 12mins | 18mins | 9mins | 36mins |
 
