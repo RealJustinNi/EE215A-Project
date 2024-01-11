@@ -1,4 +1,4 @@
-# Project Router for EE215A VLSI Design Automation Spring2023
+# Project for EE215A VLSI Design Automation Spring2023
 _ShanghaiTech University_
 
 _Author : NiZhaojun, NingBin_  
